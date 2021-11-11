@@ -1,6 +1,6 @@
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
-import { transform as transformTo, fromLonLat } from "ol/proj";
+import { transform as transformTo, fromLonLat, addCoordinateTransforms } from "ol/proj";
 
 export function getFeatureClickedMap(e,map) {
   //クリックするとfeatureがとれる仕様
@@ -18,6 +18,8 @@ export function getFeatureClickedMap(e,map) {
     console.log("クリックした箇所でfeatureは取得できません");
     return;
   }
+
+  //以下は点の座標として色々な値からピックアップしている
   let [feature, layer] = featurePoint;
   // let tmp;
   let point_arr; //クリックした点の制御用
@@ -65,13 +67,14 @@ console.log(flagStatus)
       console.log("ボーリング点追加");
       // if (inputLineDistanceType != 2) {
 
+      //最後に追加します
       selectedPoint = addLastLoc(selected_point, point_arr);
       console.log(selectedPoint)
       // }
       break;
     case "selected": //選択済み
       console.log("選択済み点をクリック！");
-
+      [selectedPoint,deletedPoint] = selectedBoringClick(selected_point,deleted_point,point_arr);
       break;
     case "delselected": //削除済み点をクリック
       console.log("削除済み点をクリック！");
@@ -107,10 +110,12 @@ console.log(layer.get("title"))
 
 
   let flagStatus;
+  let title=layer.get("title");
   //新規、選択済み、削除済みを振り分ける
-  if (layer.get("title") == "evacuation") {
+  if (title == "evacuation") {
     flagStatus = "add";
-
+  }else if(title == "draw_points"){
+    flagStatus = "selected";
   } else {
     console.log("対象なし");
     // return;
@@ -144,4 +149,53 @@ export function addLastLoc(comd, _point_arr) {
     comd.push(json_selected_tmp);
   // }
   return comd;
+}
+
+function selectedBoringClick(selected_point,deleted_point,point_arr){
+  //選択済みから削除
+  selected_point = delComd(selected_point,point_arr)
+  //削除済みに追加
+  deleted_point = addComd(deleted_point,point_arr)
+  return [selected_point,deleted_point]
+}
+
+export function delComd(json_point,point_arr){
+  //クリックした点の個所を取得
+  let [loc, dx] = codePull(json_point, point_arr);
+
+  //クリックした点を削除
+  json_point.splice(loc, 1);
+  //番号昇順に振り直し
+  json_point.forEach((val, index, array) => {
+    array[index].num = index;
+  });
+  return json_point;
+}
+
+export function addComd(deleted_point, point_arr) {
+  //選択済み点(addpoint)がjson_delteにない場合追加
+  let result = deleted_point.some((val) => {
+    return val.dx === point_arr.dx;
+  });
+  if (!result) {
+    deleted_point.push(point_arr);
+  }
+  return deleted_point;
+}
+
+function codePull(selected_point, point_arr){
+  let returnVaule;
+  console.log('ここは通っているでしょ')
+  selected_point.forEach((ele, index) => {
+    if (ele.dx == point_arr.dx) {
+      console.log(point_arr);
+      return (returnVaule = [index, point_arr.dx]);
+    }
+  });
+
+  return returnVaule;
+}
+
+export function drawSelectedPoint(){
+
 }

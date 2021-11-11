@@ -4,8 +4,8 @@ import View from 'ol/View';
 import OSM from 'ol/source/OSM';
 import TileLayer from 'ol/layer/Tile';
 import { fromLonLat } from "ol/proj";
-import { vectorLayer,draw_points_layer, make_draw_points,draw_exe} from '../js/layers';
-import {getFeatureClickedMap,dataHandling} from '../js/dataConrtol'
+import { vectorLayer,draw_points_layer, del_layer,make_draw_points,draw_exe,drawPoint} from '../js/layers';
+import {getFeatureClickedMap,getButtonStatus,dataHandling} from '../js/dataConrtol';
 
 
 
@@ -22,7 +22,7 @@ const MapPage = ({center}) => {
 
     const [ map, setMap ] = useState()
     const [drawPointsLayer, setDrawPointsLayer] = useState();
-
+    const [drawDeletsLayer, setDrawDeletsLayer] = useState();
 
     const mapElement = useRef()
     const mapRef = useRef()
@@ -39,6 +39,7 @@ const MapPage = ({center}) => {
           new TileLayer({source: new OSM()}),
           vectorLayer,
           draw_points_layer,
+          del_layer
           
         ],
         view: new View({
@@ -50,7 +51,7 @@ const MapPage = ({center}) => {
     
       setMap(initialMap)
       setDrawPointsLayer(draw_points_layer);
-  
+      setDrawDeletsLayer(del_layer);
     },[])
 
     useEffect(() => {
@@ -62,6 +63,7 @@ const MapPage = ({center}) => {
 			console.log('あああ')
 
 			//クリックした箇所でデータが取得できる仕様
+      //つまりフィーチャー取得しました
 			let featurePoint = getFeatureClickedMap(e,map);
 			  //featureを取得できなければ以下処理しない
 			if (typeof featurePoint === "undefined") {
@@ -69,9 +71,13 @@ const MapPage = ({center}) => {
 				return;
 			}
 
-//選択点（クリックしたボーリング）よりjson_comd,json_delete作成
-[selected_point, deleted_point] = dataHandling(e, featurePoint, selected_point, deleted_point);
-			console.log('８８８')
+      //クリックした箇所のlayerが何かチェックします
+      let flagStatus = getButtonStatus(featurePoint);
+
+
+      //選択点（クリックしたボーリング）よりどうするかを決める
+      [selected_point, deleted_point] = dataHandling(e, featurePoint, selected_point, deleted_point);
+            console.log('８８８')
 
 
     //json_comdをナンバリング順に並び替える
@@ -81,20 +87,25 @@ const MapPage = ({center}) => {
       return 0;
     });
 console.log(selected_point)
-    //選択点描画
-    if (selected_point.length > 0) {
-      let json_point_feature = {
-        type: "FeatureCollection",
-        name: "draw",
-        features: [],
-      };
-      drawPointsLayer.getSource().clear();
-      json_point_feature = make_draw_points(json_point_feature, selected_point);
-      console.log('値がある')
-      console.log(json_point_feature)
-      console.log(selected_point)
-      draw_exe(drawPointsLayer, json_point_feature);
-    }
+console.log(deleted_point)
+
+    //描画
+    drawPoint(selected_point,deleted_point,drawPointsLayer,drawDeletsLayer);
+
+    // //選択点描画
+    // if (selected_point.length > 0) {
+    //   let json_point_feature = {
+    //     type: "FeatureCollection",
+    //     name: "draw",
+    //     features: [],
+    //   };
+    //   drawPointsLayer.getSource().clear();
+    //   json_point_feature = make_draw_points(json_point_feature, selected_point);
+    //   console.log('値がある')
+    //   console.log(json_point_feature)
+    //   console.log(selected_point)
+    //   draw_exe(drawPointsLayer, json_point_feature);
+    // }
 
 
 
